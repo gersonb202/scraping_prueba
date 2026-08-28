@@ -61,3 +61,53 @@ class ScraperTrabajadores:
 
         logger.info("Encontrados %d trabajadores en %s", len(trabajadores), self.url)
         return trabajadores
+
+
+    def _descargar_pagina(self) -> Optional[str]:
+        """Realiza la petición HTTP y devuelve el HTML como cadena."""
+        try:
+            response = requests.get(
+                self.url, headers=_HEADERS, timeout=self.timeout
+            )
+            response.raise_for_status()
+            return response.text
+        except requests.exceptions.Timeout:
+            logger.error("Tiempo de espera agotado al conectar con %s", self.url)
+        except requests.exceptions.ConnectionError:
+            logger.error("Error de conexión con %s", self.url)
+        except requests.exceptions.HTTPError as exc:
+            logger.error("Error HTTP %s al obtener %s", exc.response.status_code, self.url)
+        return None
+
+    def _extraer_trabajadores(self) -> list[Trabajador]:
+        """
+        Recorre el DOM buscando nodos cuyo texto coincida con un oficio
+        conocido y trata de inferir nombre y descripción del contexto.
+        """
+        encontrados: list[Trabajador] = []
+        vistos: set[str] = set()
+
+        candidatos: list[Tag] = self._soup.find_all(
+            ["div", "article", "section", "li", "tr", "span", "p", "h1", "h2", "h3"]
+        )
+
+        for elemento in candidatos:
+            texto = elemento.get_text(separator=" ", strip=True)
+            match = _PATTERN.search(texto)
+            if not match:
+                continue
+
+            oficio = match.group(0).upper()
+            nombre = self._inferir_nombre(elemento)
+            descripcion = self._inferir_descripcion(elemento, texto)
+
+            clave = (nombre.lower(), oficio)
+            if clave in vistos:
+                continue
+            vistos.add(clave)
+
+            encontrados.append(
+                Trabajador(nombre=nombre, trabajo=oficio, descripcion=descripcion)
+            )
+
+        return encontrados
