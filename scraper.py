@@ -64,7 +64,7 @@ class ScraperTrabajadores:
 
 
     def _descargar_pagina(self) -> Optional[str]:
-        """Realiza la petición HTTP y devuelve el HTML como cadena."""
+        
         try:
             response = requests.get(
                 self.url, headers=_HEADERS, timeout=self.timeout
@@ -80,10 +80,7 @@ class ScraperTrabajadores:
         return None
 
     def _extraer_trabajadores(self) -> list[Trabajador]:
-        """
-        Recorre el DOM buscando nodos cuyo texto coincida con un oficio
-        conocido y trata de inferir nombre y descripción del contexto.
-        """
+
         encontrados: list[Trabajador] = []
         vistos: set[str] = set()
 
@@ -111,3 +108,45 @@ class ScraperTrabajadores:
             )
 
         return encontrados
+    def _inferir_nombre(self, elemento: Tag) -> str:
+
+        for tag in ["h1", "h2", "h3", "strong", "b"]:
+            found = elemento.find(tag)
+            if found:
+                nombre = found.get_text(strip=True)
+                if nombre and not _PATTERN.fullmatch(nombre):
+                    return nombre[:100]
+
+        for enlace in elemento.find_all("a", href=True):
+            texto_enlace = enlace.get_text(strip=True)
+            if texto_enlace and not _PATTERN.fullmatch(texto_enlace):
+                return texto_enlace[:100]
+
+        fragmentos = [
+            t.strip()
+            for t in elemento.strings
+            if t.strip() and not _PATTERN.fullmatch(t.strip())
+        ]
+        if fragmentos:
+            return fragmentos[0][:100]
+
+        return "Desconocido"
+
+    def _inferir_descripcion(self, elemento: Tag, texto_completo: str) -> str:
+        
+        parrafo = elemento.find("p")
+        if parrafo:
+            desc = parrafo.get_text(strip=True)
+            if desc:
+                return desc[:200]
+
+        for tag in elemento.find_all(True):
+            for attr in ("title", "alt"):
+                valor = tag.get(attr, "")
+                if valor and len(valor) > 5:
+                    return str(valor)[:200]
+
+        if texto_completo:
+            return texto_completo[:200]
+
+        return "Sin descripción"
