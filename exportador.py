@@ -1,3 +1,5 @@
+"""Exportación legible de anuncios de trabajo."""
+
 import logging
 from pathlib import Path
 
@@ -5,8 +7,9 @@ from trabajador import Trabajador
 
 logger = logging.getLogger(__name__)
 
-class ExportadorTrabajodores:
-    def __init__(self, ruta_archivo: str = "trabajadores.txt") -> None:
+
+class ExportadorTrabajadores:
+    def __init__(self, ruta_archivo: str = "/home/gerson/Proyectos/scraping_trabajador/datos/trabajadores.txt") -> None:
         self.ruta = Path(ruta_archivo)
 
     def exportar(self, trabajadores: list[Trabajador]) -> None:
@@ -14,23 +17,24 @@ class ExportadorTrabajodores:
             logger.warning("No hay trabajadores para exportar.")
             return
 
-    self.ruta.parent.mkdir(parents=True, exist_ok=True)
-
-    try:
-            with self.ruta.open(mode="w", encoding="utf-8") as archivo:
+        self.ruta.parent.mkdir(parents=True, exist_ok=True)
+        try:
+            with self.ruta.open(mode="w", encoding="utf-8", newline="\n") as archivo:
                 archivo.write(
-                    f"{'=' * 60}\n"
-                    f"  LISTADO DE TRABAJADORES — {len(trabajadores)} registro(s)\n"
-                    f"{'=' * 60}\n\n"
+                    f"{'=' * 70}\n"
+                    f"  LISTADO DE ANUNCIOS — {len(trabajadores)} registro(s)\n"
+                    f"{'=' * 70}\n"
                 )
-                for idx, trabajador in enumerate(trabajadores, start=1):
-                    archivo.write(f"{idx:>3}. {trabajador}\n")
+                for indice, trabajador in enumerate(trabajadores, start=1):
+                    archivo.write(f"\n{'-' * 70}\n[{indice}]\n{trabajador}\n")
+                archivo.write(f"\n{'=' * 70}\n")
+        except OSError as exc:
+            logger.error("Error al escribir el archivo %s: %s", self.ruta, exc)
+            raise
 
-                archivo.write(f"\n{'=' * 60}\n")
+        logger.info("Archivo exportado correctamente → %s", self.ruta.resolve())
+        print(f"\nExportados {len(trabajadores)} anuncios → {self.ruta.resolve()}")
 
-            logger.info("Archivo exportado correctamente → %s", self.ruta.resolve())
-            print(f"\n✅  Exportados {len(trabajadores)} trabajadores → {self.ruta.resolve()}")
 
-    except OSError as exc:
-        logger.error("Error al escribir el archivo %s: %s", self.ruta, exc)
-        raise
+# Alias temporal para código que importaba el nombre con la errata original.
+ExportadorTrabajodores = ExportadorTrabajadores
