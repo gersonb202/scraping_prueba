@@ -9,8 +9,11 @@ def main():
         print("No se encontraron anuncios.")
         return
 
-    trabajador = extraer_trabajador(urls[0])
-    print(trabajador)
+    for url in urls:
+        print(f"Procesando URL: {url}")
+        trabajador = extraer_trabajador(url)
+        print(trabajador)
+        print("-" * 40)
 
 if __name__ == "__main__":
     main()
