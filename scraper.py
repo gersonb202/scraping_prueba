@@ -1,18 +1,7 @@
-"""Scraper de Milanuncios: extrae datos de trabajadores desde el JSON embebido.
-
-Estrategia:
-  1. Hacer GET a la página de listado con requests
-  2. Extraer el JSON de window.__INITIAL_PROPS__ del HTML
-  3. Del JSON, obtener la URL de cada anuncio
-  4. Hacer GET a la página de detalle de cada anuncio
-  5. Extraer nombre (h2) y puesto (h1) del HTML de detalle
-"""
-
 import json
 import re
-
+from bs4 import BeautifulSoup
 import requests
-
 from trabajador import Trabajador
 
 URL_BASE = "https://www.milanuncios.com"
@@ -22,8 +11,6 @@ URL_LISTADO = (
     "?dias=10&fromSearch=1&orden=date&s=peon&pagina=1"
 )
 
-# Cabeceras HTTP que imitan un navegador real.
-# Sin estas cabeceras, Milanuncios puede bloquear la petición.
 HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
@@ -33,10 +20,9 @@ HEADERS = {
     "Accept-Language": "es-ES,es;q=0.9",
 }
 
-
-# ---------------------------------------------------------------------------
-# Paso 1: Obtener URLs de anuncios desde el JSON embebido
-# ---------------------------------------------------------------------------
+# Nueve dígitos exactos, permitiendo separadores habituales entre ellos.
+# El límite de dígitos evita capturar una parte de un número más largo.
+_PATRON_NUMERO = re.compile(r"(?<!\d)(?:\d[\s()./-]?){8}\d(?!\d)")
 
 def obtener_urls_anuncios():
 
@@ -72,14 +58,15 @@ def extraer_trabajador(url):
 
     respuesta = requests.get(url, headers=HEADERS, timeout=30)
     html = respuesta.text
+    soup = BeautifulSoup(html, "html.parser")
 
-    match_nombre = re.search(
-        r'<h2[^>]*class="ma-UserOverviewProfileName"[^>]*>([^<]+)', html
-    )
-    nombre = match_nombre.group(1).strip() if match_nombre else "Nombre no encontrado"
+    nombre = soup.find("h2", class_="ma-UserOverviewProfileName")
+    nombre = nombre.get_text().strip() if nombre else "Nombre no encontrado"
 
-    match_puesto = re.search(r'<h1[^>]*>([^<]+)', html)
-    puesto = match_puesto.group(1).strip() if match_puesto else "Puesto no indicado"
+    puesto = soup.find("h1")
+    puesto = puesto.get_text().strip() if puesto else "Puesto no indicado"
+
+
 
     return Trabajador(nombre=nombre, puesto=puesto, url=url)
 
@@ -105,3 +92,11 @@ def _extraer_initial_props(html):
     except json.JSONDecodeError:
         print("⚠ Error al parsear el JSON de __INITIAL_PROPS__.")
         return None
+
+def extraer_numero(descripcion: str) -> str:
+
+    for match in _PATRON_NUMERO.finditer(descripcion or ""):
+        numero = re.sub(r"\D", "", match.group(0))
+        if len(numero) == 9:
+            return numero
+    return "Número no encontrado"

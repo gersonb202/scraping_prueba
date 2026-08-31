@@ -1,17 +1,12 @@
-# Entornos virtuales
+
 venv/
 
-# Python caché
 __pycache__/
 *.py[cod]
 .pytest_cache/
 
-# Datos generados localmente (pueden contener datos personales)
 trabajadores.txt
 datos/
 *.log
 
 tests/
-
-# Configuración local
-.env

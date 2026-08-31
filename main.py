@@ -1,5 +1,3 @@
-"""Punto de entrada del scraper de Milanuncios."""
-
 from scraper import extraer_trabajador, obtener_urls_anuncios
 
 
@@ -13,7 +11,6 @@ def main():
 
     trabajador = extraer_trabajador(urls[0])
     print(trabajador)
-
 
 if __name__ == "__main__":
     main()
