@@ -20,16 +20,13 @@ HEADERS = {
     "Accept-Language": "es-ES,es;q=0.9",
 }
 
-_PATRON_NUMERO = re.compile(r"(?<!\d)(?:\d[\s()./-]?){8}\d(?!\d)")
+# Nueve dígitos, opcionalmente precedidos por el prefijo español +34/0034,
+# permitiendo separadores habituales entre dígitos.
+_PATRON_NUMERO = re.compile(
+    r"(?<!\d)(?:(?:\+|00)\s*34[\s()./-]*)?(?:\d[\s()./-]*){9}(?!\d)"
+)
 
 def obtener_urls_anuncios():
-    """Devuelve los enlaces de los ``article`` del listado, página a página.
-
-    Milanuncios puede publicar el mismo anuncio en más de una página, por lo
-    que se eliminan duplicados conservando el orden de aparición. La búsqueda
-    termina cuando el contenedor no existe, no contiene artículos o se alcanza
-    un límite de seguridad.
-    """
 
     from urllib.parse import urljoin
 
@@ -121,33 +118,15 @@ def extraer_trabajador(url):
 
     return Trabajador(nombre=nombre, puesto=puesto, url=url, numero=tel, descripcion=descripcion, fecha=fecha, actualizado=actualizado)
 
-# Busca el json embebido en el HTML
-def _extraer_initial_props(html):
-    
-    marcador = 'window.__INITIAL_PROPS__ = JSON.parse("'
-    inicio = html.find(marcador)
-    if inicio == -1:
-        return None
-    inicio += len(marcador)
-
-    fin = html.find('");', inicio)
-    if fin == -1:
-        return None
-
-    # Formatea el json
-    json_escapado = html[inicio:fin]
-    json_limpio = json_escapado.replace('\\"', '"').replace('\\\\', '\\')
-
-    try:
-        return json.loads(json_limpio)
-    except json.JSONDecodeError:
-        print("Error al parsear el JSON de __INITIAL_PROPS__.")
-        return None
-
 def extraer_numero(descripcion: str) -> str:
 
-    for match in _PATRON_NUMERO.finditer(descripcion or ""):
+    if not descripcion:
+        return "Número no encontrado"
+
+    for match in _PATRON_NUMERO.finditer(descripcion):
         numero = re.sub(r"\D", "", match.group(0))
+        if len(numero) in {11, 13} and numero.startswith(("34", "0034")):
+            numero = numero[-9:]
         if len(numero) == 9:
             return numero
     return "Número no encontrado"

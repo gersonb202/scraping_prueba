@@ -3,14 +3,14 @@ from dataclasses import dataclass
 @dataclass
 class Trabajador:
 
-    nombre: str
-    puesto: str
     url: str
-    numero: str
-    descripcion: str
-    fecha: str
-    actualizado: str
-
+    nombre: str = ""
+    puesto: str = ""
+    numero: str = ""
+    descripcion: str = ""
+    fecha: str = ""
+    actualizado: str = ""
+    
     def __str__(self):
         return (
             f"Nombre: {self.nombre}\n"
@@ -21,3 +21,5 @@ class Trabajador:
             f"Fecha: {self.fecha}\n"
             f"Actualizado: {self.actualizado}\n"
         )
+
+    
